@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>조은이들의 2026년 여름휴가 일정</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      font-size: 18px;
+      background: linear-gradient(135deg, #0d2b6b 0%, #1565c0 40%, #1976d2 70%, #0288d1 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .dashboard {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 36px 40px 40px;
+      width: 100%;
+      max-width: 1100px;
+      box-shadow: 0 12px 56px rgba(0,0,0,0.35);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #1565c0;
+      letter-spacing: 1px;
+    }
+    .header p {
+      font-size: 14px;
+      color: #90a4ae;
+      margin-top: 6px;
+    }
+
+    /* 범례 */
+    .legend {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      min-height: 10px;
+    }
+    .legend-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f1f5f9;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 13px;
+      color: #475569;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .legend-chip:hover { border-color: #1565c0; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── 캘린더 래퍼 (절대 위치 기준점) ── */
+    #calWrapper {
+      position: relative;
+    }
+
+    /* ── 캘린더 그리드 ── */
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .day-header {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 7px 0;
+      border-radius: 8px;
+      letter-spacing: 1px;
+    }
+    .day-header.sun  { color: #e53935; background: #fff5f5; }
+    .day-header.sat  { color: #1565c0; background: #e8f0fe; }
+    .day-header.wday { color: #37474f; background: #f5f7fa; }
+
+    .day-cell {
+      background: #f9fbff;
+      border: 1.5px solid #e0e8f0;
+      border-radius: 12px;
+      padding: 10px 8px 8px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+    }
+    .day-cell:hover {
+      background: #eef4ff;
+      border-color: #90baf9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 18px rgba(21,101,192,0.12);
+    }
+    .day-cell.sun  { border-top: 3px solid #ef9a9a; }
+    .day-cell.sat  { border-top: 3px solid #90baf9; }
+    .day-cell.wday { border-top: 3px solid #b0bec5; }
+
+    .date-label {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .date-num {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+      color: #263238;
+    }
+    .day-cell.sun .date-num { color: #e53935; }
+    .day-cell.sat .date-num { color: #1565c0; }
+    .date-month { font-size: 12px; color: #90a4ae; }
+
+    /* 기간 바 자리 예약 공간 */
+    .bar-space { flex-shrink: 0; }
+
+    /* 단일 이벤트 칩 */
+    .events-area { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+
+    .event-chip {
+      border-left: 3px solid;
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1a1a2e;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      cursor: pointer;
+      word-break: break-all;
+      transition: filter 0.15s;
+    }
+    .event-chip:hover { filter: brightness(0.95); }
+    .event-chip .chip-text { flex: 1; }
+    .event-chip .del-btn {
+      font-size: 11px;
+      color: #90a4ae;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .event-chip .del-btn:hover { color: #e53935; }
+
+    .add-hint {
+      font-size: 12px;
+      color: #b0bec5;
+      text-align: center;
+      margin-top: auto;
+      padding-top: 2px;
+    }
+
+    /* 절대 위치 기간 바 */
+    .ev-bar {
+      position: absolute;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+      transition: filter 0.15s;
+      user-select: none;
+    }
+    .ev-bar:hover { filter: brightness(1.1); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,43,107,0.55);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: linear-gradient(155deg, #1a3a8f, #0d47a1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 30px 34px;
+      width: 420px;
+      max-width: 96vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal h2 { font-size: 19px; color: #fff; margin-bottom: 20px; font-weight: 700; }
+    .modal label { font-size: 14px; color: rgba(255,255,255,0.7); display: block; margin-bottom: 5px; }
+    .modal input[type="text"],
+    .modal input[type="date"] {
+      width: 100%;
+      font-size: 16px;
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 10px;
+      color: #fff;
+      padding: 9px 13px;
+      outline: none;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    .modal input[type="text"]:focus,
+    .modal input[type="date"]:focus { border-color: rgba(255,255,255,0.65); }
+    .modal input[type="text"]::placeholder { color: rgba(255,255,255,0.35); }
+    .modal input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+
+    .type-toggle {
+      display: flex;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 3px;
+      margin-bottom: 16px;
+    }
+    .type-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .type-btn.active { background: #fff; color: #1565c0; }
+
+    .date-range-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .date-range-row label { font-size: 13px; }
+
+    .color-row { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+    .color-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .color-btn.selected { border-color: #fff; transform: scale(1.25); }
+
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .btn {
+      font-size: 15px; padding: 9px 20px;
+      border-radius: 10px; border: none;
+      cursor: pointer; font-weight: 600;
+      transition: opacity 0.2s, transform 0.12s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn-primary { background: #fff; color: #1565c0; }
+    .btn-cancel  { background: rgba(255,255,255,0.15); color: #fff; }
+    .btn-delete  { background: rgba(255,80,80,0.3); color: #ff8a80; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <div class="header">
+    <h1>☀️ 조은이들의 2026년 여름휴가 일정</h1>
+    <p>날짜 셀을 클릭하여 일정 추가 &nbsp;|&nbsp; 기간 일정도 설정 가능</p>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div id="calWrapper">
+    <div class="calendar" id="calendar"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">일정 추가</h2>
+    <div class="type-toggle">
+      <div class="type-btn active" id="typeSingle" onclick="setType('single')">📅 단일 날짜</div>
+      <div class="type-btn" id="typeRange"  onclick="setType('range')">📆 기간 설정</div>
+    </div>
+    <label>일정 내용</label>
+    <input type="text" id="eventInput" placeholder="일정을 입력하세요" />
+    <div id="singleDateWrap">
+      <label>날짜</label>
+      <input type="date" id="singleDate" min="2026-07-26" max="2026-08-08" />
+    </div>
+    <div id="rangeWrap" style="display:none">
+      <div class="date-range-row">
+        <div>
+          <label>시작일</label>
+          <input type="date" id="startDate" min="2026-07-26" max="2026-08-08" />
+        </div>
+        <div>
+          <label>종료일</label>
+          <input type="date" id="endDate" min="2026-07-26" max="2026-08-08" />
+        </div>
+      </div>
+    </div>
+    <label>색상</label>
+    <div class="color-row" id="colorRow"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn btn-delete" id="deleteBtn" onclick="deleteEvent()" style="display:none">삭제</button>
+      <button class="btn btn-primary" onclick="saveEvent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── 상수 ── */
+  const COLORS = [
+    { name: '파랑',  hex: '#1e88e5' },
+    { name: '초록',  hex: '#43a047' },
+    { name: '주황',  hex: '#fb8c00' },
+    { name: '핑크',  hex: '#e91e8c' },
+    { name: '보라',  hex: '#8e24aa' },
+    { name: '청록',  hex: '#00acc1' },
+    { name: '노랑',  hex: '#f9a825' },
+    { name: '빨강',  hex: '#e53935' },
+  ];
+  const DAYS      = ['일', '월', '화', '수', '목', '금', '토'];
+  const DAY_CLASS = ['sun', 'wday', 'wday', 'wday', 'wday', 'wday', 'sat'];
+  const START     = new Date(2026, 6, 26); // 2026-07-26 (일)
+  const SLOT_H    = 24; // 기간 바 1개 높이(px)
+  const BAR_H     = 20; // 실제 바 높이(px)
+  const DATE_ROW  = 34; // 날짜 숫자 영역 높이(px)
+
+  /* ── 데이터 ── */
+  let events = JSON.parse(localStorage.getItem('vacEvents2026v2') || '[]');
+
+  // 구버전 마이그레이션
+  (function() {
+    const old = localStorage.getItem('vacationEvents2026');
+    if (!old) return;
+    try {
+      const obj = JSON.parse(old);
+      Object.entries(obj).forEach(([date, arr]) => {
+        arr.forEach(ev => events.push({ id: uid(), text: ev.text, color: ev.color, start: date, end: date }));
+      });
+    } catch(e) {}
+    localStorage.removeItem('vacationEvents2026');
+    persist();
+  })();
+
+  let currentCell   = null;
+  let editId        = null;
+  let selectedColor = COLORS[0].hex;
+  let currentType   = 'single';
+
+  /* ── 유틸 ── */
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function dKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function cellDate(i) {
+    const d = new Date(START);
+    d.setDate(START.getDate() + i);
+    return d;
+  }
+
+  function dateToIdx(key) {
+    // 2026-07-26 → 0, 2026-07-27 → 1, ..., 2026-08-08 → 13
+    const d = new Date(key + 'T00:00:00');
+    const diff = Math.round((d - START) / 86400000);
+    return (diff >= 0 && diff < 14) ? diff : -1;
+  }
+
+  function escHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function persist() { localStorage.setItem('vacEvents2026v2', JSON.stringify(events)); }
+
+  function fmtDate(key) {
+    const [,m,d] = key.split('-');
+    return `${parseInt(m)}/${parseInt(d)}`;
+  }
+
+  /* ── 슬롯 수 사전 계산 ── */
+  function computeMaxSlots() {
+    const result = [0, 0];
+    for (let row = 0; row < 2; row++) {
+      const rS = row * 7, rE = rS + 6;
+      const slotEnd = [];
+      events
+        .filter(ev => {
+          const si = dateToIdx(ev.start), ei = dateToIdx(ev.end);
+          return si < ei && si <= rE && ei >= rS;
+        })
+        .sort((a, b) => dateToIdx(a.start) - dateToIdx(b.start))
+        .forEach(ev => {
+          const si = Math.max(dateToIdx(ev.start), rS);
+          let slot = 0;
+          while (slot < slotEnd.length && slotEnd[slot] >= si) slot++;
+          if (slot === slotEnd.length) slotEnd.push(-1);
+          slotEnd[slot] = Math.min(dateToIdx(ev.end), rE);
+          result[row] = Math.max(result[row], slot + 1);
+        });
+    }
+    return result;
+  }
+
+  /* ── 캘린더 렌더 ── */
+  function buildCalendar() {
+    const maxSlots = computeMaxSlots(); // [row0, row1]
+    const cal = document.getElementById('calendar');
+    cal.innerHTML = '';
+    // 기존 오버레이 바 제거
+    document.querySelectorAll('.ev-bar').forEach(el => el.remove());
+
+    // 요일 헤더
+    DAYS.forEach((d, i) => {
+      const h = document.createElement('div');
+      h.className = `day-header ${DAY_CLASS[i]}`;
+      h.textContent = d;
+      cal.appendChild(h);
+    });
+
+    // 날짜 셀
+    for (let i = 0; i < 14; i++) {
+      const date  = cellDate(i);
+      const dow   = date.getDay();
+      const key   = dKey(date);
+      const month = date.getMonth() === 6 ? '7월' : '8월';
+      const row   = Math.floor(i / 7);
+      const slotSpace = maxSlots[row] * SLOT_H;
+
+      const cell = document.createElement('div');
+      cell.id = 'dc-' + i;
+      cell.className = `day-cell ${DAY_CLASS[dow]}`;
+      cell.onclick = () => openModal(key);
+
+      // 날짜 레이블
+      const lbl = document.createElement('div');
+      lbl.className = 'date-label';
+      lbl.innerHTML = `<span class="date-num">${date.getDate()}</span><span class="date-month">${month}</span>`;
+      cell.appendChild(lbl);
+
+      // 기간 바 자리 예약 공간
+      if (slotSpace > 0) {
+        const spacer = document.createElement('div');
+        spacer.className = 'bar-space';
+        spacer.style.height = slotSpace + 'px';
+        cell.appendChild(spacer);
+      }
+
+      // 단일 일정 칩
+      const area = document.createElement('div');
+      area.className = 'events-area';
+      events
+        .filter(ev => ev.start === ev.end && ev.start === key)
+        .forEach(ev => {
+          const chip = document.createElement('div');
+          chip.className = 'event-chip';
+          chip.style.borderLeftColor = ev.color || COLORS[0].hex;
+          chip.style.background = (ev.color || COLORS[0].hex) + '18';
+          chip.innerHTML = `<span class="chip-text">${escHtml(ev.text)}</span>
+            <button class="del-btn" title="삭제" onclick="event.stopPropagation();quickDelete('${ev.id}')">✕</button>`;
+          chip.querySelector('.chip-text').onclick = e => { e.stopPropagation(); openEdit(ev.id); };
+          area.appendChild(chip);
+        });
+      cell.appendChild(area);
+
+      const hint = document.createElement('div');
+      hint.className = 'add-hint';
+      hint.textContent = '+ 추가';
+      cell.appendChild(hint);
+
+      cal.appendChild(cell);
+    }
+
+    // 기간 바 그리기 (레이아웃 완료 후)
+    requestAnimationFrame(() => requestAnimationFrame(() => drawRangeBars(maxSlots)));
+    buildLegend();
+  }
+
+  /* ── 기간 바 절대 위치 렌더링 ── */
+  function drawRangeBars(maxSlots) {
+    document.querySelectorAll('.ev-bar').forEach(el => el.remove());
+
+    const wrapper = document.getElementById('calWrapper');
+    const wRect   = wrapper.getBoundingClientRect();
+
+    for (let row = 0; row < 2; row++) {
+      const rS = row * 7, rE = rS + 6;
+      const slotEnd = [];
+
+      events
+        .filter(ev => {
+          const si = dateToIdx(ev.start), ei = dateToIdx(ev.end);
+          return si < ei && si <= rE && ei >= rS;
+        })
+        .sort((a, b) => dateToIdx(a.start) - dateToIdx(b.start))
+        .forEach(ev => {
+          const si = Math.max(dateToIdx(ev.start), rS);
+          const ei = Math.min(dateToIdx(ev.end), rE);
+
+          // 슬롯 배정
+          let slot = 0;
+          while (slot < slotEnd.length && slotEnd[slot] >= si) slot++;
+          if (slot === slotEnd.length) slotEnd.push(-1);
+          slotEnd[slot] = ei;
+
+          const fromEl = document.getElementById('dc-' + si);
+          const toEl   = document.getElementById('dc-' + ei);
+          if (!fromEl || !toEl) return;
+
+          const fr = fromEl.getBoundingClientRect();
+          const tr = toEl.getBoundingClientRect();
+
+          const PAD  = 3;
+          const left  = fr.left - wRect.left + PAD;
+          const top   = fr.top  - wRect.top  + DATE_ROW + slot * SLOT_H + (SLOT_H - BAR_H) / 2;
+          const width = tr.right - fr.left - PAD * 2;
+
+          const isContinued = dateToIdx(ev.start) < rS; // 이전 행에서 이어짐
+
+          const bar = document.createElement('div');
+          bar.className = 'ev-bar';
+          bar.dataset.id = ev.id;
+          bar.title = `${ev.text}  (${fmtDate(ev.start)} ~ ${fmtDate(ev.end)})`;
+          bar.style.cssText =
+            `left:${left}px;top:${top}px;width:${width}px;height:${BAR_H}px;background:${ev.color};`;
+          bar.textContent = isContinued ? `↪ ${ev.text}` : ev.text;
+          bar.onclick = e => { e.stopPropagation(); openEdit(ev.id); };
+          wrapper.appendChild(bar);
+        });
+    }
+  }
+
+  /* ── 범례 ── */
+  function buildLegend() {
+    const legend = document.getElementById('legend');
+    legend.innerHTML = '';
+    events.filter(ev => ev.start < ev.end).forEach(ev => {
+      const chip = document.createElement('div');
+      chip.className = 'legend-chip';
+      chip.innerHTML = `<span class="legend-dot" style="background:${ev.color}"></span>
+        ${escHtml(ev.text)}
+        <span style="color:#b0bec5;font-size:12px">&nbsp;${fmtDate(ev.start)} ~ ${fmtDate(ev.end)}</span>`;
+      chip.onclick = () => openEdit(ev.id);
+      legend.appendChild(chip);
+    });
+  }
+
+  /* ── Modal ── */
+  function setType(type) {
+    currentType = type;
+    document.getElementById('typeSingle').classList.toggle('active', type === 'single');
+    document.getElementById('typeRange').classList.toggle('active',  type === 'range');
+    document.getElementById('singleDateWrap').style.display = type === 'single' ? '' : 'none';
+    document.getElementById('rangeWrap').style.display      = type === 'range'  ? '' : 'none';
+  }
+
+  function buildColorRow(sel) {
+    const row = document.getElementById('colorRow');
+    row.innerHTML = '';
+    COLORS.forEach(c => {
+      const btn = document.createElement('div');
+      btn.className = 'color-btn' + (c.hex === sel ? ' selected' : '');
+      btn.style.background = c.hex;
+      btn.title = c.name;
+      btn.onclick = () => { selectedColor = c.hex; buildColorRow(c.hex); };
+      row.appendChild(btn);
+    });
+  }
+
+  function openModal(key) {
+    currentCell = key; editId = null;
+    selectedColor = COLORS[0].hex;
+    const d = new Date(key + 'T00:00:00');
+    const m = d.getMonth() === 6 ? '7월' : '8월';
+    document.getElementById('modalTitle').textContent = `${m} ${d.getDate()}일 — 일정 추가`;
+    document.getElementById('eventInput').value = '';
+    document.getElementById('singleDate').value = key;
+    document.getElementById('startDate').value  = key;
+    document.getElementById('endDate').value    = key;
+    document.getElementById('deleteBtn').style.display = 'none';
+    setType('single');
+    buildColorRow(selectedColor);
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('eventInput').focus(), 50);
+  }
+
+  function openEdit(id) {
+    const ev = events.find(e => e.id === id);
+    if (!ev) return;
+    editId = id; selectedColor = ev.color || COLORS[0].hex;
+    const isRange = ev.start !== ev.end;
+    const d = new Date(ev.start + 'T00:00:00');
+    const m = d.getMonth() === 6 ? '7월' : '8월';
+    document.getElementById('modalTitle').textContent = `${m} ${d.getDate()}일 — 일정 수정`;
+    document.getElementById('eventInput').value = ev.text;
+    document.getElementById('singleDate').value = ev.start;
+    document.getElementById('startDate').value  = ev.start;
+    document.getElementById('endDate').value    = ev.end;
+    document.getElementById('deleteBtn').style.display = 'inline-block';
+    setType(isRange ? 'range' : 'single');
+    buildColorRow(selectedColor);
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('eventInput').focus(), 50);
+  }
+
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+  function saveEvent() {
+    const text = document.getElementById('eventInput').value.trim();
+    if (!text) { document.getElementById('eventInput').focus(); return; }
+    let start, end;
+    if (currentType === 'single') {
+      start = end = document.getElementById('singleDate').value;
+    } else {
+      start = document.getElementById('startDate').value;
+      end   = document.getElementById('endDate').value;
+      if (end < start) end = start;
+    }
+    if (editId) {
+      const ev = events.find(e => e.id === editId);
+      if (ev) Object.assign(ev, { text, color: selectedColor, start, end });
+    } else {
+      events.push({ id: uid(), text, color: selectedColor, start, end });
+    }
+    persist(); closeModal(); buildCalendar();
+  }
+
+  function deleteEvent() {
+    if (!editId) return;
+    events = events.filter(e => e.id !== editId);
+    persist(); closeModal(); buildCalendar();
+  }
+
+  function quickDelete(id) {
+    events = events.filter(e => e.id !== id);
+    persist(); buildCalendar();
+  }
+
+  /* ── 키보드 / 클릭 이벤트 ── */
+  document.getElementById('eventInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveEvent();
+    if (e.key === 'Escape') closeModal();
+  });
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+
+  // 창 리사이즈 시 바 위치 재계산
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(buildCalendar, 150);
+  });
+
+  buildCalendar();
+</script>
+</body>
+</html>
